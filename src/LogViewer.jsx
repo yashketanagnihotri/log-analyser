@@ -46,6 +46,7 @@ export default function LogViewer() {
   const [modalInput, setModalInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [uniqueErrors, setUniqueErrors] = useState([]);
+  const [uniqueDebug, setUniqueDebug] = useState([]);
 
   const textareaRef = useRef(null);
   const listRef = useRef();
@@ -101,6 +102,7 @@ export default function LogViewer() {
   const extractUniqueErrors = (text) => {
     const logs = text.split("\n");
     const errorMessages = new Map();
+    const debugMessages = new Map();
   
     logs.forEach((line) => {
       try {
@@ -111,12 +113,19 @@ export default function LogViewer() {
         if (!message) return;
   
         // Include all ERROR and DEBUG logs
-        if (level === "ERROR" || level === "DEBUG") {
+        if (level === "ERROR") {
           // Use the first 3 words of the message as a key
           const firstThreeWords = message.split(/\s+/).slice(0, 3).join(" ");
   
           if (!errorMessages.has(firstThreeWords)) {
             errorMessages.set(firstThreeWords, JSON.stringify(json, null, 2));
+          }
+        } else if (level === "DEBUG") {
+          // Use the first 3 words of the message as a key
+          const firstThreeWords = message.split(/\s+/).slice(0, 3).join(" ");
+  
+          if (!debugMessages.has(firstThreeWords)) {
+            debugMessages.set(firstThreeWords, JSON.stringify(json, null, 2));
           }
         }
       } catch (e) {
@@ -125,6 +134,7 @@ export default function LogViewer() {
     });
   
     setUniqueErrors(Array.from(errorMessages.values()));
+    setUniqueDebug(Array.from(debugMessages.values()));
   };
   
   
@@ -287,6 +297,26 @@ export default function LogViewer() {
                 </summary>
                 <pre className="bg-gray-50 p-4 text-sm overflow-auto whitespace-pre-wrap font-mono">
                     {error}
+                </pre>
+                </details>
+            );
+            })}
+        </div>
+        )}
+        
+        {uniqueDebug.length > 0 && (
+        <div className="bg-white rounded border p-4 mt-6">
+            <h2 className="text-lg font-semibold mb-2">Unique Debug Types</h2>
+            {uniqueDebug.map((debug, i) => {
+            const parsed = JSON.parse(debug);
+            const debugTitle = parsed.message || `Debug ${i + 1}`;
+            return (
+                <details key={i} className="mb-4 border rounded overflow-hidden">
+                <summary className="cursor-pointer bg-gray-200 px-4 py-2 font-medium text-sm hover:bg-gray-300">
+                    {debugTitle}
+                </summary>
+                <pre className="bg-gray-50 p-4 text-sm overflow-auto whitespace-pre-wrap font-mono">
+                    {debug}
                 </pre>
                 </details>
             );
