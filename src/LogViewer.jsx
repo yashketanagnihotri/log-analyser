@@ -106,36 +106,42 @@ export default function LogViewer() {
   
     logs.forEach((line) => {
       try {
-        const json = JSON.parse(line.replace(/^.*?({.*})$/, "$1"));
+        let json = JSON.parse(line.replace(/^.*?({.*})$/, "$1"));
+  
+        // Handle logs with a `log` field containing a stringified JSON
+        if (json.log) {
+          try {
+            json = JSON.parse(json.log);
+          } catch (e) {
+            return; // Skip if nested log field is not valid JSON
+          }
+        }
+  
         const level = json.level;
         const message = json.message;
   
         if (!message) return;
   
-        // Include all ERROR and DEBUG logs
-        if (level === "ERROR") {
-          // Use the first 3 words of the message as a key
-          const firstThreeWords = message.split(/\s+/).slice(0, 3).join(" ");
+        const firstThreeWords = message.split(/\s+/).slice(0, 3).join(" ");
   
+        if (level === "ERROR") {
           if (!errorMessages.has(firstThreeWords)) {
             errorMessages.set(firstThreeWords, JSON.stringify(json, null, 2));
           }
         } else if (level === "DEBUG") {
-          // Use the first 3 words of the message as a key
-          const firstThreeWords = message.split(/\s+/).slice(0, 3).join(" ");
-  
           if (!debugMessages.has(firstThreeWords)) {
             debugMessages.set(firstThreeWords, JSON.stringify(json, null, 2));
           }
         }
       } catch (e) {
-        // silently skip lines that are not valid JSON
+        // Skip lines that can't be parsed
       }
     });
   
     setUniqueErrors(Array.from(errorMessages.values()));
     setUniqueDebug(Array.from(debugMessages.values()));
   };
+  
   
   
   
@@ -303,7 +309,7 @@ export default function LogViewer() {
             })}
         </div>
         )}
-        
+
         {uniqueDebug.length > 0 && (
         <div className="bg-white rounded border p-4 mt-6">
             <h2 className="text-lg font-semibold mb-2">Unique Debug Types</h2>
