@@ -3,7 +3,7 @@ import { VariableSizeList as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import { debounce } from "lodash";
 
-const highlightText = (text, query, highlights = [], isFocused) => {
+const highlightText = (text, query, highlights = [], currentMatchGlobalIndex, lineIndex, flatMatches) => {
   if (!query || highlights.length === 0) return [<span key="plain">{text}</span>];
 
   const parts = [];
@@ -11,13 +11,19 @@ const highlightText = (text, query, highlights = [], isFocused) => {
 
   highlights.forEach((match, idx) => {
     const [start, end] = match;
+    const globalMatchIndex = flatMatches.findIndex(
+      (m) => m.line === lineIndex && m.range[0] === start && m.range[1] === end
+    );
+    const isFocused = globalMatchIndex === currentMatchGlobalIndex;
+
     if (start > lastIndex) {
       parts.push(<span key={lastIndex}>{text.slice(lastIndex, start)}</span>);
     }
+
     parts.push(
       <mark
         key={start}
-        className={`bg-yellow-300 ${isFocused && idx === 0 ? "ring-2 ring-red-500" : ""} rounded px-1`}
+        className={`bg-yellow-300 ${isFocused ? "ring-2 ring-red-500" : ""} rounded px-1`}
       >
         {text.slice(start, end)}
       </mark>
@@ -136,7 +142,6 @@ export default function LogViewer() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [matchCount, currentMatchIndex]);
-  
 
   const getItemSize = useCallback(
     (index) => {
@@ -222,7 +227,9 @@ export default function LogViewer() {
                       lines[index],
                       searchQuery,
                       matchesPerLine[index] || [],
-                      flatMatches[currentMatchIndex]?.line === index
+                      currentMatchIndex,
+                      index,
+                      flatMatches
                     )}
                   </div>
                 )}
