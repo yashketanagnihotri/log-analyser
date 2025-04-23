@@ -105,20 +105,31 @@ export default function LogViewer() {
     logs.forEach((line) => {
       try {
         const json = JSON.parse(line.replace(/^.*?({.*})$/, "$1"));
-        if ((json.level === "ERROR" || json.level === "DEBUG") && json.message) {
-          const basicMessage = json.message.split(" '")[0];  // Strip out dynamic parts like event ID
+        const level = json.level;
+        const message = json.message;
   
-          // Group errors by the basic message content
+        if (!message) return;
+  
+        // For ERROR logs: include all
+        // For DEBUG logs: include only if message contains "error" (case-insensitive)
+        if (
+          level === "ERROR" ||
+          (level === "DEBUG" && message.toLowerCase().includes("error"))
+        ) {
+          const basicMessage = message.split(" '")[0]; // Strip out dynamic parts
+  
           if (!errorMessages.has(basicMessage)) {
             errorMessages.set(basicMessage, JSON.stringify(json, null, 2));
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        // silently skip lines that are not valid JSON
+      }
     });
   
-    // Convert the map to an array of unique error messages
     setUniqueErrors(Array.from(errorMessages.values()));
   };
+  
   
 
   const debouncedSearch = useMemo(() => debounce((value) => {
