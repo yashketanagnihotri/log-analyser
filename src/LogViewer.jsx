@@ -263,15 +263,22 @@ export default function LogViewer() {
       {uniqueErrors.length > 0 && (
         <div className="bg-white rounded border p-4 mt-6">
           <h2 className="text-lg font-semibold mb-2">Unique Error Types</h2>
-          {uniqueErrors.map((error, i) => (
-            <textarea
-              key={i}
-              className="w-full mb-4 p-2 border rounded bg-gray-50 font-mono text-sm"
-              rows={8}
-              readOnly
-              value={error}
-            />
-          ))}
+          {uniqueErrors.map((error, i) => {
+            const parsed = JSON.parse(error);
+            const errorTitle = parsed.thrown?.message || `Error ${i + 1}`;
+
+            return (
+                <details key={i} className="mb-4 border rounded overflow-hidden">
+                <summary className="cursor-pointer bg-gray-200 px-4 py-2 font-medium text-sm hover:bg-gray-300">
+                    {errorTitle}
+                </summary>
+                <pre className="bg-gray-50 p-4 text-sm overflow-auto whitespace-pre-wrap font-mono">
+                    {error}
+                </pre>
+                </details>
+            );
+            })}
+
         </div>
       )}
 
