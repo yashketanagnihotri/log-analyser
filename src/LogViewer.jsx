@@ -101,21 +101,25 @@ export default function LogViewer() {
   const extractUniqueErrors = (text) => {
     const logs = text.split("\n");
     const errorMessages = new Map();
-
+  
     logs.forEach((line) => {
       try {
         const json = JSON.parse(line.replace(/^.*?({.*})$/, "$1"));
-        if (json.level === "ERROR" && json.message) {
-          const basicMessage = json.message;
+        if ((json.level === "ERROR" || json.level === "DEBUG") && json.message) {
+          const basicMessage = json.message.split(" '")[0];  // Strip out dynamic parts like event ID
+  
+          // Group errors by the basic message content
           if (!errorMessages.has(basicMessage)) {
             errorMessages.set(basicMessage, JSON.stringify(json, null, 2));
           }
         }
       } catch (e) {}
     });
-
+  
+    // Convert the map to an array of unique error messages
     setUniqueErrors(Array.from(errorMessages.values()));
   };
+  
 
   const debouncedSearch = useMemo(() => debounce((value) => {
     setSearchQuery(value);
@@ -262,8 +266,8 @@ export default function LogViewer() {
 
       {uniqueErrors.length > 0 && (
         <div className="bg-white rounded border p-4 mt-6">
-          <h2 className="text-lg font-semibold mb-2">Unique Error Types</h2>
-          {uniqueErrors.map((error, i) => {
+            <h2 className="text-lg font-semibold mb-2">Unique Error Types</h2>
+            {uniqueErrors.map((error, i) => {
             const parsed = JSON.parse(error);
             const errorTitle = parsed.message || `Error ${i + 1}`;
 
@@ -279,7 +283,8 @@ export default function LogViewer() {
             );
             })}
         </div>
-      )}
+        )}
+
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
