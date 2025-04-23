@@ -104,16 +104,20 @@ export default function LogViewer() {
     const errorMessages = new Map();
     const debugMessages = new Map();
   
+    // Keywords that imply error/failure context in debug logs
+    const failureKeywords = ['error', 'ERROR', 'Error', 'FAILURE', 'Failed', 'failure', 'failed'];
+  
     logs.forEach((line) => {
       try {
+        // Attempt to extract JSON object from a line
         let json = JSON.parse(line.replace(/^.*?({.*})$/, "$1"));
   
-        // Handle logs with a `log` field containing a stringified JSON
+        // If the log object has a nested stringified JSON under `log`, parse it
         if (json.log) {
           try {
             json = JSON.parse(json.log);
           } catch (e) {
-            return; // Skip if nested log field is not valid JSON
+            return; // Skip malformed nested logs
           }
         }
   
@@ -129,18 +133,25 @@ export default function LogViewer() {
             errorMessages.set(firstThreeWords, JSON.stringify(json, null, 2));
           }
         } else if (level === "DEBUG") {
-          if (!debugMessages.has(firstThreeWords)) {
+          // Include DEBUG messages only if they contain keywords indicating a problem
+          const containsFailureKeyword = failureKeywords.some((keyword) =>
+            message.includes(keyword)
+          );
+  
+          if (containsFailureKeyword && !debugMessages.has(firstThreeWords)) {
             debugMessages.set(firstThreeWords, JSON.stringify(json, null, 2));
           }
         }
       } catch (e) {
-        // Skip lines that can't be parsed
+        // Fail silently for non-JSON lines
       }
     });
   
+    // Set the unique messages for rendering
     setUniqueErrors(Array.from(errorMessages.values()));
     setUniqueDebug(Array.from(debugMessages.values()));
   };
+  
   
   
   
