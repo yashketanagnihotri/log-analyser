@@ -110,16 +110,13 @@ export default function LogViewer() {
   
         if (!message) return;
   
-        // For ERROR logs: include all
-        // For DEBUG logs: include only if message contains "error" (case-insensitive)
-        if (
-          level === "ERROR" ||
-          (level === "DEBUG" && message.toLowerCase().includes("error"))
-        ) {
-          const basicMessage = message.split(" '")[0]; // Strip out dynamic parts
+        // Include all ERROR and DEBUG logs
+        if (level === "ERROR" || level === "DEBUG") {
+          // Use the first 3 words of the message as a key
+          const firstThreeWords = message.split(/\s+/).slice(0, 3).join(" ");
   
-          if (!errorMessages.has(basicMessage)) {
-            errorMessages.set(basicMessage, JSON.stringify(json, null, 2));
+          if (!errorMessages.has(firstThreeWords)) {
+            errorMessages.set(firstThreeWords, JSON.stringify(json, null, 2));
           }
         }
       } catch (e) {
@@ -129,6 +126,7 @@ export default function LogViewer() {
   
     setUniqueErrors(Array.from(errorMessages.values()));
   };
+  
   
   
 
