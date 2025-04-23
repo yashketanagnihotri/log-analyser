@@ -105,8 +105,8 @@ export default function LogViewer() {
     logs.forEach((line) => {
       try {
         const json = JSON.parse(line.replace(/^.*?({.*})$/, "$1"));
-        if (json.level === "ERROR" && json.message && json.thrown?.message) {
-          const basicMessage = json.thrown.message;
+        if (json.level === "ERROR" && json.message) {
+          const basicMessage = json.message;
           if (!errorMessages.has(basicMessage)) {
             errorMessages.set(basicMessage, JSON.stringify(json, null, 2));
           }
@@ -265,7 +265,7 @@ export default function LogViewer() {
           <h2 className="text-lg font-semibold mb-2">Unique Error Types</h2>
           {uniqueErrors.map((error, i) => {
             const parsed = JSON.parse(error);
-            const errorTitle = parsed.thrown?.message || `Error ${i + 1}`;
+            const errorTitle = parsed.message || `Error ${i + 1}`;
 
             return (
                 <details key={i} className="mb-4 border rounded overflow-hidden">
@@ -278,7 +278,6 @@ export default function LogViewer() {
                 </details>
             );
             })}
-
         </div>
       )}
 
