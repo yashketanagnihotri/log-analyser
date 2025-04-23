@@ -9,7 +9,7 @@ const highlightText = (text, query, highlights = [], currentMatchGlobalIndex, li
   const parts = [];
   let lastIndex = 0;
 
-  highlights.forEach((match, idx) => {
+  highlights.forEach((match) => {
     const [start, end] = match;
     const globalMatchIndex = flatMatches.findIndex(
       (m) => m.line === lineIndex && m.range[0] === start && m.range[1] === end
@@ -45,6 +45,7 @@ export default function LogViewer() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInput, setModalInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [uniqueErrors, setUniqueErrors] = useState([]);
 
   const textareaRef = useRef(null);
   const listRef = useRef();
@@ -84,7 +85,9 @@ export default function LogViewer() {
         setLoading(true);
         const reader = new FileReader();
         reader.onload = (event) => {
-          setLogText(event.target.result);
+          const content = event.target.result;
+          setLogText(content);
+          extractUniqueErrors(content);
           resetSearch();
           setLoading(false);
         };
@@ -93,6 +96,25 @@ export default function LogViewer() {
         alert("Please upload a valid text or log file.");
       }
     }
+  };
+
+  const extractUniqueErrors = (text) => {
+    const logs = text.split("\n");
+    const errorMessages = new Map();
+
+    logs.forEach((line) => {
+      try {
+        const json = JSON.parse(line.replace(/^.*?({.*})$/, "$1"));
+        if (json.level === "ERROR" && json.message && json.thrown?.message) {
+          const basicMessage = json.thrown.message;
+          if (!errorMessages.has(basicMessage)) {
+            errorMessages.set(basicMessage, JSON.stringify(json, null, 2));
+          }
+        }
+      } catch (e) {}
+    });
+
+    setUniqueErrors(Array.from(errorMessages.values()));
   };
 
   const debouncedSearch = useMemo(() => debounce((value) => {
@@ -120,6 +142,7 @@ export default function LogViewer() {
 
   const applyPastedLogs = () => {
     setLogText(modalInput);
+    extractUniqueErrors(modalInput);
     setModalInput("");
     setIsModalOpen(false);
     resetSearch();
@@ -187,9 +210,7 @@ export default function LogViewer() {
         )}
 
         <span className="text-sm text-gray-700">
-          {matchCount > 0
-            ? `Match ${currentMatchIndex + 1} of ${matchCount}`
-            : "No matches"}
+          {matchCount > 0 ? `Match ${currentMatchIndex + 1} of ${matchCount}` : "No matches"}
         </span>
 
         <button
@@ -239,28 +260,40 @@ export default function LogViewer() {
         )}
       </div>
 
+      {uniqueErrors.length > 0 && (
+        <div className="bg-white rounded border p-4 mt-6">
+          <h2 className="text-lg font-semibold mb-2">Unique Error Types</h2>
+          {uniqueErrors.map((error, i) => (
+            <textarea
+              key={i}
+              className="w-full mb-4 p-2 border rounded bg-gray-50 font-mono text-sm"
+              rows={8}
+              readOnly
+              value={error}
+            />
+          ))}
+        </div>
+      )}
+
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-4 space-y-4">
-            <h2 className="text-lg font-semibold">Paste Your Logs</h2>
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-4">
+            <h2 className="text-xl font-bold mb-4">Paste Logs</h2>
             <textarea
-              ref={textareaRef}
-              rows="10"
-              className="w-full border border-gray-300 rounded p-2 font-mono text-sm resize-y"
-              placeholder="Paste log data here..."
               value={modalInput}
               onChange={(e) => setModalInput(e.target.value)}
-            ></textarea>
-            <div className="flex justify-end gap-2">
+              className="w-full h-64 border p-2 font-mono text-sm rounded"
+            />
+            <div className="flex justify-end mt-4 gap-2">
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
               >
                 Cancel
               </button>
               <button
                 onClick={applyPastedLogs}
-                className="px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
                 Apply Logs
               </button>
